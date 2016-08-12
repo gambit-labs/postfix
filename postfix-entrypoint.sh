@@ -6,19 +6,19 @@
 # https://www.rootusers.com/configure-postfix-to-forward-mail-to-a-central-relay-server/
 # https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/
 
+POSTFIX_SMTP_PORT=${POSTFIX_SMTP_PORT:-25}
+POSTFIX_LOGIN_EMAIL=${POSTFIX_LOGIN_EMAIL:-}
+POSTFIX_LOGIN_PASSWORD=${POSTFIX_LOGIN_PASSWORD:-}
+POSTFIX_USE_TLS=${POSTFIX_USE_TLS:-0}
+POSTFIX_USE_PLAIN_ONLY=${POSTFIX_USE_PLAIN_ONLY:-0}
+POSTFIX_FOREGROUND=${POSTFIX_FOREGROUND:-1}
+
 postfix_setup() {
 	if [[ -z ${POSTFIX_DOMAIN} || -z ${POSTFIX_SMTP_SERVER} ]]; then
 		echo "The POSTFIX_DOMAIN and POSTFIX_SMTP_SERVER variables are required."
 		echo "Exiting because at least one of them is unset."
 		exit 1
 	fi
-
-	POSTFIX_SMTP_PORT=${POSTFIX_SMTP_PORT:-25}
-	POSTFIX_LOGIN_EMAIL=${POSTFIX_LOGIN_EMAIL:-}
-	POSTFIX_LOGIN_PASSWORD=${POSTFIX_LOGIN_PASSWORD:-}
-	POSTFIX_USE_TLS=${POSTFIX_USE_TLS:-0}
-	POSTFIX_USE_PLAIN_ONLY=${POSTFIX_USE_PLAIN_ONLY:-0}
-	POSTFIX_FOREGROUND=${POSTFIX_FOREGROUND:-1}
 
 	cat >> /etc/postfix/main.cf <<-EOF
 	myhostname = mail.${POSTFIX_DOMAIN}
