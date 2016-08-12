@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# References:
+# http://www.postfix.org/SASL_README.html#server_sasl
+# http://tecadmin.net/ways-to-send-email-from-linux-command-line/
+# https://www.rootusers.com/configure-postfix-to-forward-mail-to-a-central-relay-server/
+# https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/
+
 if [[ -z ${DOMAIN} || -z ${SMTP_SERVER} ]]; then
 	echo "The DOMAIN and SMTP_SERVER variables are required."
 	echo "Exiting because at least one of them is unset."
@@ -11,6 +17,7 @@ LOGIN_EMAIL=${LOGIN_EMAIL:-}
 LOGIN_PASSWORD=${LOGIN_PASSWORD:-}
 USE_TLS=${USE_TLS:-0}
 USE_PLAIN_ONLY=${USE_PLAIN_ONLY:-0}
+POSTFIX_FOREGROUND=${POSTFIX_FOREGROUND:-1}
 
 cat >> /etc/postfix/main.cf <<EOF
 myhostname = mail.${DOMAIN}
@@ -51,6 +58,8 @@ chmod 400 /etc/postfix/sasl_passwd
 postmap /etc/postfix/sasl_passwd
 postfix start
 
-while true; do
-	sleep 3600
-done
+if [[ ${POSTFIX_FOREGROUND} == 1 ]]; then
+	while true; do
+		sleep 3600
+	done
+fi
