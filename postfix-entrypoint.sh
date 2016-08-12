@@ -6,56 +6,59 @@
 # https://www.rootusers.com/configure-postfix-to-forward-mail-to-a-central-relay-server/
 # https://easyengine.io/tutorials/linux/ubuntu-postfix-gmail-smtp/
 
-if [[ -z ${POSTFIX_DOMAIN} || -z ${POSTFIX_SMTP_SERVER} ]]; then
-	echo "The POSTFIX_DOMAIN and POSTFIX_SMTP_SERVER variables are required."
-	echo "Exiting because at least one of them is unset."
-	exit 1
-fi
-
-POSTFIX_SMTP_PORT=${POSTFIX_SMTP_PORT:-25}
-POSTFIX_LOGIN_EMAIL=${POSTFIX_LOGIN_EMAIL:-}
-POSTFIX_LOGIN_PASSWORD=${POSTFIX_LOGIN_PASSWORD:-}
-POSTFIX_USE_TLS=${POSTFIX_USE_TLS:-0}
-POSTFIX_USE_PLAIN_ONLY=${POSTFIX_USE_PLAIN_ONLY:-0}
-POSTFIX_FOREGROUND=${POSTFIX_FOREGROUND:-1}
-
-cat >> /etc/postfix/main.cf <<EOF
-myhostname = mail.${POSTFIX_DOMAIN}
-mydomain = ${POSTFIX_DOMAIN}
-myorigin = ${POSTFIX_DOMAIN}
-mynetworks = 127.0.0.1/8 [::1]/128
-relayhost = [${POSTFIX_SMTP_SERVER}]:${POSTFIX_SMTP_PORT}
-EOF
-
-if [[ ! -z ${POSTFIX_LOGIN_EMAIL} && ! -z ${POSTFIX_LOGIN_PASSWORD} ]]; then
-
-	echo "[${POSTFIX_SMTP_SERVER}]:${POSTFIX_SMTP_PORT}    ${POSTFIX_LOGIN_EMAIL}:${POSTFIX_LOGIN_PASSWORD}" > /etc/postfix/sasl_passwd
-
-	cat >> /etc/postfix/main.cf <<EOF
-smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
-smtp_sasl_security_options = noanonymous
-EOF
-
-	if [[ ${POSTFIX_USE_TLS} == 1 ]]; then
-
-		cat >> /etc/postfix/main.cf <<EOF
-smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
-smtp_use_tls = yes
-EOF
+postfix_setup() {
+	if [[ -z ${POSTFIX_DOMAIN} || -z ${POSTFIX_SMTP_SERVER} ]]; then
+		echo "The POSTFIX_DOMAIN and POSTFIX_SMTP_SERVER variables are required."
+		echo "Exiting because at least one of them is unset."
+		exit 1
 	fi
 
-	if [[ ${POSTFIX_USE_PLAIN_ONLY} == 1 ]]; then
+	POSTFIX_SMTP_PORT=${POSTFIX_SMTP_PORT:-25}
+	POSTFIX_LOGIN_EMAIL=${POSTFIX_LOGIN_EMAIL:-}
+	POSTFIX_LOGIN_PASSWORD=${POSTFIX_LOGIN_PASSWORD:-}
+	POSTFIX_USE_TLS=${POSTFIX_USE_TLS:-0}
+	POSTFIX_USE_PLAIN_ONLY=${POSTFIX_USE_PLAIN_ONLY:-0}
+	POSTFIX_FOREGROUND=${POSTFIX_FOREGROUND:-1}
 
-		cat >> /etc/postfix/main.cf <<EOF
-broken_sasl_auth_clients = yes
-smtp_sasl_mechanism_filter = plain
-EOF
+	cat >> /etc/postfix/main.cf <<-EOF
+	myhostname = mail.${POSTFIX_DOMAIN}
+	mydomain = ${POSTFIX_DOMAIN}
+	myorigin = ${POSTFIX_DOMAIN}
+	mynetworks = 127.0.0.1/8 [::1]/128
+	relayhost = [${POSTFIX_SMTP_SERVER}]:${POSTFIX_SMTP_PORT}
+	EOF
+
+	if [[ ! -z ${POSTFIX_LOGIN_EMAIL} && ! -z ${POSTFIX_LOGIN_PASSWORD} ]]; then
+
+		echo "[${POSTFIX_SMTP_SERVER}]:${POSTFIX_SMTP_PORT}    ${POSTFIX_LOGIN_EMAIL}:${POSTFIX_LOGIN_PASSWORD}" > /etc/postfix/sasl_passwd
+
+		cat >> /etc/postfix/main.cf <<-EOF
+		smtp_sasl_auth_enable = yes
+		smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+		smtp_sasl_security_options = noanonymous
+		EOF
+
+		if [[ ${POSTFIX_USE_TLS} == 1 ]]; then
+
+			cat >> /etc/postfix/main.cf <<-EOF
+			smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+			smtp_use_tls = yes
+			EOF
+		fi
+
+		if [[ ${POSTFIX_USE_PLAIN_ONLY} == 1 ]]; then
+
+			cat >> /etc/postfix/main.cf <<-EOF
+			broken_sasl_auth_clients = yes
+			smtp_sasl_mechanism_filter = plain
+			EOF
+		fi
 	fi
-fi
 
-chmod 400 /etc/postfix/sasl_passwd
-postmap /etc/postfix/sasl_passwd
+	chmod 400 /etc/postfix/sasl_passwd
+	postmap /etc/postfix/sasl_passwd
+}
+
 
 postfix_usage() {
 	cat <<-EOF
@@ -76,6 +79,7 @@ postfix_usage() {
 
 if [[ $# == 0 ]]; then
 
+	postfix_setup
 	postfix start
 
 	if [[ ${POSTFIX_FOREGROUND} == 1 ]]; then
